@@ -39,7 +39,7 @@ function woocommerce_gateway_mintpay_init() {
 
 			$this->title 		= 'Pay in 3 interest-free installments with Mintpay';
 			$this->description 	=  "<p>Split your bill into 3, interest-free installments.<br/>
-            Don’t have a Mintpay account yet?<a href='https://app.mintpay.lk/signup/' target='_blank'><u>Click here</u></a> to sign up now.<br/>T&C applies</p><img src='https://mintpay-logo.s3.ap-south-1.amazonaws.com/payment-gateway/logo_w120_h32.png' srcset='https://mintpay-logo.s3.ap-south-1.amazonaws.com/payment-gateway/logo_w120_h32.png 1x,https://mintpay-logo.s3.ap-south-1.amazonaws.com/payment-gateway/logo_w240_h64.png 2x,https://mintpay-logo.s3.ap-south-1.amazonaws.com/payment-gateway/logo_w360_h96.png 3x' height='35' alt='Mintpay' />";
+            Don’t have a Mintpay account yet? <a href='https://app.mintpay.lk/signup/' target='_blank'><u>Click here</u></a> to sign up now.<br/>T&C applies</p><img src='https://mintpay-logo.s3.ap-south-1.amazonaws.com/payment-gateway/logo_w120_h32.png' srcset='https://mintpay-logo.s3.ap-south-1.amazonaws.com/payment-gateway/logo_w120_h32.png 1x,https://mintpay-logo.s3.ap-south-1.amazonaws.com/payment-gateway/logo_w240_h64.png 2x,https://mintpay-logo.s3.ap-south-1.amazonaws.com/payment-gateway/logo_w360_h96.png 3x' height='35' alt='Mintpay' />";
             $this->merchant_id 		= $this->get_option( 'merchant_id' );
             $this->merchant_secret 	= $this->get_option( 'merchant_secret');
             $this->test_mode        = 'yes' === $this->get_option( 'test_mode' );
