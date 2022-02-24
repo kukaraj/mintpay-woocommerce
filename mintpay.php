@@ -1,12 +1,19 @@
 <?php
-/*
-Plugin Name: Mintpay
-Plugin URI: https://www.mintpay.lk
-Description: WooCommerce payment plugin of Mintpay payment gateway. Sri Lanka's first buy now pay later platform, that allows consumers to split their payment into 3 interst-free installments.
-Version: 1.0.0
-Author: Algoredge (Private) Limited
-Author URI: https://www.mintpay.lk
-*/
+/**
+ * Plugin Name: Mintpay 
+ * Plugin URI: https://www.mintpay.lk
+ * Description: WooCommerce plugin of Mintpay. Sri Lanka's first buy now pay later platform, that allows consumers to split their payment into 3 interst-free installments.
+ * Version: 1.0.0
+ * Author: Mintpay (Private) Limited
+ * Author URI: https://www.mintpay.lk
+ * Text Domain: mintpay
+ * Domain Path: /i18n/languages/
+ * Requires at least: 5.6
+ * Requires PHP: 7.0
+ *
+ * @package Mintpay
+ */
+
 
 add_action('plugins_loaded', 'woocommerce_gateway_mintpay_init', 0);
 define('mintpay_IMG', WP_PLUGIN_URL . "/" . plugin_basename(dirname(__FILE__)) . '/assets/img/');
@@ -15,7 +22,9 @@ function woocommerce_gateway_mintpay_init() {
 	if ( !class_exists( 'WC_Payment_Gateway' ) ) return;
 
 	if (!session_id()) {
-		 session_start();
+		session_start( [
+			'read_and_close' => true,
+		] );
 	}	
 
 	/**
@@ -29,7 +38,8 @@ function woocommerce_gateway_mintpay_init() {
 		public function __construct(){
 			
 			$this->id 					= 'mintpay'; // ID for WC to associate the gateway values
-            //$this->icon 				= WP_PLUGIN_URL . "/" . plugin_basename(dirname(__FILE__ )) . '/assets/img/logo.png';
+            #$this->icon                 = WP_PLUGIN_URL . "/" . plugin_basename(dirname(__FILE__ )) . '/assets/img/mintpay.png';
+            $this->icon                 = "https://static.mintpay.lk/static/base/logo/mintpay_logo.png";
 			$this->method_title 		= "Mintpay"; // Gateway Title as seen in Admin Dashboad
 			$this->method_description	= "Sri Lanka's first buy now pay later platform, that allows consumers to split their payment into 3 interst-free installments.";
 			$this->has_fields 			= false; // Inform WC if any fileds have to be displayed to the visitor in Frontend 
@@ -37,9 +47,8 @@ function woocommerce_gateway_mintpay_init() {
 			$this->init_form_fields();	// defines your settings to WC
 			$this->init_settings();		// loads the Gateway settings into variables for WC
 
-			$this->title 		= 'Pay in 3 interest-free installments with Mintpay';
-			$this->description 	=  "<p>Split your bill into 3, interest-free installments.<br/>
-            Don’t have a Mintpay account yet? <a href='https://app.mintpay.lk/signup/' target='_blank'><u>Click here</u></a> to sign up now.<br/>T&C applies</p><img src='https://mintpay-logo.s3.ap-south-1.amazonaws.com/payment-gateway/logo_w120_h32.png' srcset='https://mintpay-logo.s3.ap-south-1.amazonaws.com/payment-gateway/logo_w120_h32.png 1x,https://mintpay-logo.s3.ap-south-1.amazonaws.com/payment-gateway/logo_w240_h64.png 2x,https://mintpay-logo.s3.ap-south-1.amazonaws.com/payment-gateway/logo_w360_h96.png 3x' height='35' alt='Mintpay' />";
+			$this->title 		= 'Mintpay';
+			$this->description 	=  "Pay in 3 interest-free instalments using your <b>Debit / Credit</b> card.";
             $this->merchant_id 		= $this->get_option( 'merchant_id' );
             $this->merchant_secret 	= $this->get_option( 'merchant_secret');
             $this->test_mode        = 'yes' === $this->get_option( 'test_mode' );
@@ -49,6 +58,7 @@ function woocommerce_gateway_mintpay_init() {
 			
 			add_action('init', array(&$this, 'check_mintpay_response'));
             add_action('woocommerce_api_' . strtolower(get_class($this)), array($this, 'check_mintpay_response')); //update for woocommerce >2.0
+            add_action('woocommerce_gateway_icon', array($this, 'modify_gateway_icon_css'), 10, 2);
 
             if ( version_compare(WOOCOMMERCE_VERSION, '2.0.0', '>=' ) ) {
                     add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( &$this, 'process_admin_options' ) ); //update for woocommerce >2.0
@@ -58,6 +68,19 @@ function woocommerce_gateway_mintpay_init() {
             add_action('woocommerce_receipt_mintpay', array(&$this, 'receipt_page'));
 
 		} //END-__construct
+
+
+		function modify_gateway_icon_css($icon_html, $payment_gateway_id)
+		{
+			if ($payment_gateway_id != $this->id) {
+				return $icon_html;
+			}
+
+			$new_css = 'class="ph-logo-style" src';
+			$icon_html = preg_replace('/(src){1}/', $new_css, $icon_html);
+
+			return $icon_html;
+		}
 		
         /**
          * Initiate Form Fields in the Admin Backend
@@ -162,8 +185,8 @@ function woocommerce_gateway_mintpay_init() {
 				$notify_url = add_query_arg( 'wc-api', get_class( $this ), $redirect_url );
 			}
 
-			$success_url = $notify_url . '&hash=' .  base64_encode($success_hash);
-			$fail_url = $notify_url . '&hash=' .  base64_encode($fail_hash);
+			$success_url = $notify_url . '&orderId=' . $order_id . '&hash=' .  base64_encode($success_hash);
+			$fail_url = $notify_url . '&orderId=' . $order_id . '&hash=' .  base64_encode($fail_hash);
 
 
 			if ($this->test_mode){
@@ -231,7 +254,7 @@ function woocommerce_gateway_mintpay_init() {
 			
 			return '<form action="'. $form_url .'"method="post" id="mintpay_payment_form">
 			<input type="hidden" name="purchase_id" value="'.$mintpayRequestData['data'].'" >
-			<input type="submit" class="button-alt" id="submit_mintpay_payment_form" value="'.__('Pay via mintpay', 'woo_mintpay').'" /> <a class="button cancel" href="'.$order->get_cancel_order_url().'">'.__('Cancel order &amp; restore cart', 'woo_mintpay').'</a>
+			<input type="submit" class="button-alt" id="submit_mintpay_payment_form" value="'.__('Pay via Mintpay', 'woo_mintpay').'" /> <a class="button cancel" href="'.$order->get_cancel_order_url().'">'.__('Cancel order &amp; restore cart', 'woo_mintpay').'</a>
 				<script type="text/javascript">
 				jQuery(function(){
 				jQuery("body").block({
@@ -268,12 +291,12 @@ function woocommerce_gateway_mintpay_init() {
 
 			if(isset($_GET['key']) && isset($_GET['hash'])){
 
-				if (isset($_SESSION['order_id'])){
-					$order = wc_get_order( $_SESSION['order_id'] );
+				if (isset($_GET['orderId'])){
+					$order = wc_get_order( $_GET['orderId'] );
 
-					$post_success_hash = hash_hmac('sha256', $this->merchant_id . sprintf("%.02f", round($order->get_total(), 2)) . $_SESSION['order_id'],  $this->merchant_secret);
+					$post_success_hash = hash_hmac('sha256', $this->merchant_id . sprintf("%.02f", round($order->get_total(), 2)) . $_GET['orderId'],  $this->merchant_secret);
 
-					$post_failed_hash = hash_hmac('sha256', $_SESSION['order_id'],  $this->merchant_secret);
+					$post_failed_hash = hash_hmac('sha256', $_GET['orderId'],  $this->merchant_secret);
 
 					if ( base64_decode($_GET['hash']) == $post_success_hash){
 						$order->payment_complete();
@@ -283,26 +306,31 @@ function woocommerce_gateway_mintpay_init() {
 
 					else if ( base64_decode($_GET['hash']) == $post_failed_hash){
 						$cancelled_text = "Payment failed.";
-						$order->update_status( 'cancelled', $cancelled_text );
-						wp_redirect( $order->get_cancel_order_url() );
+
+						// 
+						wc_add_notice( $cancelled_text, 'error' );
+
+						$order->update_status( 'failed', $cancelled_text );
+						wp_redirect( $order->get_checkout_payment_url() );
 					} 
 					else{
 						$cancelled_text = "Suspicious response.";
 						$order->update_status( 'cancelled', $cancelled_text );
-						$woocommerce->cart->empty_cart();
-						wp_redirect( $order->get_cancel_order_url() );
+						// $woocommerce->cart->empty_cart();
+						wc_add_notice( __('Payment error:', 'woothemes') . $cancelled_text, 'error' );
+						wp_redirect( $order->get_checkout_payment_url() );
 						//return echo $post_hash;
 					}
 
 				}
 
 				else{
-					wp_redirect( wc_get_cart_url() );
+					wp_redirect( wc_get_checkout_url() . "A" );
 				}
 			}
 
 			else{
-					wp_redirect( wc_get_cart_url() );
+					wp_redirect( wc_get_checkout_url() . "B" );
 			}
 		}
 				
@@ -393,3 +421,5 @@ function mintpay_add_action_plugin( $actions, $plugin_file ) {
 		
 		return $actions;
 }//END-settings_add_action_link
+
+include_once("price_break_down.php");
